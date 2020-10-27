@@ -1,0 +1,3 @@
+name: kiam.cs
+runtime: dotnet
+description: A minimal AWS C# Pulumi program

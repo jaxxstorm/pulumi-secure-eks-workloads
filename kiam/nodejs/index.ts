@@ -25,11 +25,11 @@ const kiamNodePolicy = new aws.iam.RolePolicy("kiamNodePolicy", {
             Resource: arn,
         }],
     })),
-}, { parent: kiamNodeRole });
+}, {parent: kiamNodeRole});
 
 const kiamNodeProfile = new aws.iam.InstanceProfile("kiamNodeProfile", {
     role: kiamNodeRole.name
-}, { parent: kiamNodeRole });
+}, {parent: kiamNodeRole});
 
 const kiamServerRole = new aws.iam.Role("kiamServerRole", {
     assumeRolePolicy: kiamNodeRole.arn.apply(arn => JSON.stringify({
@@ -47,13 +47,14 @@ const kiamServerRole = new aws.iam.Role("kiamServerRole", {
 
 const kiamServerPolicy = new aws.iam.Policy("kiamServerPolicy", {
     policy: JSON.stringify({
-    Version: "2012-10-17",
-    Statement: [{
-        Effect: "Allow",
-        Action: "sts:AssumeRole",
-        Resource: "*",
-    }]})
-}, { parent: kiamServerRole });
+        Version: "2012-10-17",
+        Statement: [{
+            Effect: "Allow",
+            Action: "sts:AssumeRole",
+            Resource: "*",
+        }]
+    })
+}, {parent: kiamServerRole});
 
 const kiamServerPolicyAttachment = new aws.iam.PolicyAttachment("kiamServerPolicyAttachment", {
     roles: [kiamServerRole.name],
@@ -72,7 +73,7 @@ const namespace = new k8s.core.v1.Namespace("kiam", {
 const kiam = new k8s.helm.v3.Chart('kiam', {
     namespace: namespace.metadata.name,
     chart: "kiam",
-    fetchOpts: { repo: "https://uswitch.github.io/kiam-helm-charts/charts/" },
+    fetchOpts: {repo: "https://uswitch.github.io/kiam-helm-charts/charts/"},
     values: {
         agent: {
             host: {
@@ -85,4 +86,4 @@ const kiam = new k8s.helm.v3.Chart('kiam', {
             useHostNetwork: true,
         }
     }
-}, { parent: namespace })
+}, {parent: namespace})

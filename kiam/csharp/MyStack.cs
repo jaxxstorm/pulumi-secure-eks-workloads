@@ -2,6 +2,12 @@ using System.Collections.Generic;
 using System.Text.Json;
 using Pulumi;
 using Aws = Pulumi.Aws;
+using Pulumi.Kubernetes.Core.V1;
+using Pulumi.Kubernetes.Helm;
+using Pulumi.Kubernetes.Helm.V3;
+using Pulumi.Kubernetes.Types.Outputs.Meta.V1;
+using Pulumi.Kubernetes.Types.Inputs.Core.V1;
+using Pulumi.Kubernetes.Types.Inputs.Meta.V1;
 
 class MyStack : Stack
 {
@@ -78,7 +84,7 @@ class MyStack : Stack
         });
         var kiamServerPolicy = new Aws.Iam.Policy("kiamServerPolicy", new Aws.Iam.PolicyArgs
         {
-            Policy = JsonSerializer.Serialize(new Dictionary<string, object?>
+            PolicyDocument = JsonSerializer.Serialize(new Dictionary<string, object?>
             {
                 { "Version", "2012-10-17" },
                 { "Statement", new[]
@@ -103,7 +109,45 @@ class MyStack : Stack
                 kiamServerRole.Name,
             },
             PolicyArn = kiamServerPolicy.Arn,
+        }, new CustomResourceOptions
+        {
+            Parent = kiamServerRole,
         });
-    }
+        
+        var ns = new Pulumi.Kubernetes.Core.V1.Namespace("kiam", new NamespaceArgs
+        {
+            Metadata = new ObjectMetaArgs
+            {
+                Name = "kiam"
+            }
+        });
+        
+        var kiam = new Pulumi.Kubernetes.Helm.V3.Chart("kiam", new ChartArgs
+        {
+            Chart = "kiam",
+            Namespace = ns.Metadata.Apply(n => n.Name),
+            FetchOptions = new ChartFetchArgs
+            {
+                Repo = "https://uswitch.github.io/kiam-helm-charts/charts/"
+            },
+            Values = new Dictionary<string, object>
+            {
+                ["agent"] = new Dictionary<string, object>
+                {
+                    ["host"] = new Dictionary<string, object>
+                    {
+                        ["iptables"] = "true",
+                        ["interface"] = "!eth0",
+                    }
+                }
+                ["server"] = new Dictionary<string, object>
+                {
+                    ["useHostNetwork"] = "true",
+                    ["assumeRoleArn"] = kiamServerRole.Arn.Apply(arn => arn)
+                }
+            }
+        });
 
+
+    }
 }
